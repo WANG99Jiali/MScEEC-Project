@@ -1,0 +1,365 @@
+setwd("C:/Users/WANG/Desktop/DATA/correlation curve")
+library(pacman)
+p_load(ggplot2, openxlsx, patchwork)
+library("openxlsx")
+library(ggpubr)
+library(ggplot2)
+
+# correlation curve (in SI)
+# input data of S18(sheet 5) (SI Fig.1A)
+data1 <- read.xlsx("correlation curve-9-7.xlsx", 5)
+
+# plotting OD and colony Count
+p1 <- ggplot(data1, aes(x = OD, y = Count)) +
+  geom_smooth(method = "lm", se=FALSE, color="black", formula = y ~ x) +
+  geom_point()+
+  labs(x = "OD", y = "Cell Count of S18") +
+  theme_bw()
+p1
+
+ggplot(data1, aes(x = x, y = y)) +
+  geom_smooth(method = "lm", se=FALSE, color="black", formula = y ~ x) +
+  geom_point()+
+  labs(x = "OD", y = "Cell Count of S18") +
+  theme_bw()
+
+# fitting a linear model with mean OD and mean Cell Count
+# calculating mean values from 5 replicates to get a better fit
+m1 <- lm(data1$y*50 ~ data1$x, data = data1)
+# adding the equation of OD and Cell Count to the figure
+lm_eqn_1 <- function(data1){
+  eq <- substitute(italic(y) == a + b %.% italic(x)*","~~italic(r)^2~"="~r2, 
+                   list(a = format(unname(coef(m1)[1]), digits = 2),
+                        b = format(unname(coef(m1)[2]), digits = 2),
+                        r2 = format(summary(m1)$r.squared, digits = 3)))
+  as.character(as.expression(eq));
+}
+summary(m1)
+# Set the coordinates of the equation
+p1e <- p1 + geom_text(x = -0.003, y = 20000000, label = lm_eqn_1(data1), parse = TRUE)
+p1e
+
+# correlation curve of W02(sheet 6) (SI Fig.1B)
+data2 <- read.xlsx("correlation curve-9-7.xlsx", 6)
+
+# plotting OD and Cell Count
+p2 <- ggplot(data2, aes(x = OD, y = Count)) +
+  geom_smooth(method = "lm", se=FALSE, color="black", formula = y ~ x) +
+  geom_point()+
+  labs(x = "OD", y = "Cell Count of W02") +
+  theme_bw()
+p2
+
+# fitting a linear model with mean OD and mean Cell Count
+# calculating mean values from 5 replicates to get a better fit
+m2 <- lm(data2$y*50 ~ data2$x, data = data2)
+# adding the equation of OD and Cell Count to the figure
+lm_eqn_2 <- function(data2){
+  eq <- substitute(italic(y) == a + b %.% italic(x)*","~~italic(r)^2~"="~r2, 
+                   list(a = format(unname(coef(m2)[1]), digits = 2),
+                        b = format(unname(coef(m2)[2]), digits = 2),
+                        r2 = format(summary(m2)$r.squared, digits = 3)))
+  as.character(as.expression(eq));
+}
+summary(m2)
+# Set the coordinates of the equation
+p2e <- p2 + geom_text(x = 0.006, y = 20000000, label = lm_eqn_2(data2), parse = TRUE)
+p2e
+
+# correlation curve of W03(sheet 7)(SI Fig.1C)
+data3 <- read.xlsx("correlation curve-9-7.xlsx", 7)
+
+# plotting OD and Cell Count
+p3 <- ggplot(data3, aes(x = OD, y = Count)) +
+  geom_smooth(method = "lm", se=FALSE, color="black", formula = y ~ x) +
+  geom_point()+
+  labs(x = "OD", y = "Cell Count of W03") +
+  theme_bw()
+p3
+
+# fitting a linear model with mean OD and mean Cell Count
+# calculating mean values from 5 replicates to get a better fit
+m3 <- lm(data3$y*50 ~ data3$x, data = data3)
+# adding the equation of OD and Cell Count to the figure
+lm_eqn_3 <- function(data3){
+  eq <- substitute(italic(y) == a + b %.% italic(x)*","~~italic(r)^2~"="~r2, 
+                   list(a = format(unname(coef(m3)[1]), digits = 2),
+                        b = format(unname(coef(m3)[2]), digits = 2),
+                        r2 = format(summary(m3)$r.squared, digits = 3)))
+  as.character(as.expression(eq));
+}
+summary(m3)
+# Set the coordinates of the equation
+p3e <- p3 + geom_text(x = 0.004, y = 22000000, label = lm_eqn_3(data3), parse = TRUE)
+p3e
+
+
+# Growth Curve (Fig.1)
+# change all OD values in growth curves to Cell Count 
+# input data of monoculture
+setwd("C:/Users/WANG/Desktop")
+data_GC <- read.xlsx("growth_curve_data.xlsx", 1)
+
+#calculating mean OD values of S18, w02 and W03
+data_GC$m_S18 <- rowMeans(data_GC[,3:5], na.rm=T)
+data_GC$m_W02 <- rowMeans(data_GC[,6:8], na.rm=T)
+data_GC$m_W03 <- rowMeans(data_GC[,9:11], na.rm=T)
+
+view(data_GC)
+
+#define functions of OD with Cell Count
+f_s18 <- function(x)8.7*10^8+1.2*10^11*x
+f_w02 <- function(x)3.7*10^7+4.7*10^10*x
+f_w03 <- function(x)-3.7*10^6+1.1*10^11*x
+
+#apply function of OD with Cell Count
+data_GC$C_S18 <- f_s18(data_GC$m_S18)
+data_GC$C_W02 <- f_w02(data_GC$m_W02)
+data_GC$C_W03 <- f_w03(data_GC$m_W03)
+
+#Growth Curve (Figure 1.)
+#R packages used to plot growth curve
+library(openxlsx)
+library(ggplot2)
+library(tidyverse)
+library(ggpubr) # significance test
+library(ggsci) # color 
+
+#Setting Temperature as factor
+#Because of the batch effect, I divide 6 temperatures to two batches:
+#Batch A(12,18,25 degrees)
+#Batch B(15,22,28 degrees)
+
+#starting with Batch A (12,18,25 degrees)
+data_GC_A <- data_GC[1:30,]
+# setting the order of temperatures
+data_GC_A$Temperature <- factor(data_GC_A$Temperature, 
+                             levels = c("25", "18","12"))
+
+#Single Strain - S18 (Fig. 1A)
+#plotting - with smooth lines
+S18_A <- ggplot(data_GC_A, aes(Time, log(C_S18),color = Temperature))+ 
+  geom_point()+
+  geom_smooth(data = data_GC_A[data_GC_A$Time > 0 & data_GC_A$Time < 58,],
+              method = lm, alpha=0.1) +
+  labs(y="log CFUs/mL of S18", x="Time (hours)")+
+  theme_bw()+
+  theme(panel.grid = element_blank(), axis.text.x = element_text(colour = "black"),
+        axis.text.y = element_text(colour = "black"))+
+  scale_color_simpsons()
+S18_A
+
+#Single Strain - W02 (Fig. 1B)
+W02_A <- ggplot(data_GC_A, aes(Time, log(C_W02), color = Temperature))+ 
+  geom_point()+
+  geom_smooth(data = data_GC_A[data_GC_A$Time > 0 & data_GC_A$Time < 58,],
+              method = lm, alpha=0.1) +
+  labs(y="log CFUs/mL of W02", x="Time (hours)")+
+  theme_bw()+
+  theme(panel.grid = element_blank(), axis.text.x = element_text(colour = "black"), 
+        axis.text.y = element_text(colour = "black"))+
+  scale_color_simpsons()
+W02_A
+
+#Single Strain - W03 (Fig. 1C)
+#only smooth lines
+W03_A <- ggplot(data_GC_A, aes(Time, log(C_W03), color = Temperature))+ 
+  geom_point()+
+  geom_smooth(data = data_GC_A[data_GC_A$Time > 0 & data_GC_A$Time < 58,],
+              method = lm, alpha=0.1) +
+  labs(y="log CFUs/mL of W03", x="Time (hours)")+
+  theme_bw()+
+  theme(panel.grid = element_blank(), axis.text.x = element_text(colour = "black"), 
+        axis.text.y = element_text(colour = "black"))+
+  scale_color_simpsons()
+W03_A
+
+
+# Now, we start to plot Batch B
+data_GC_B <- data_GC[31:60,]
+data_GC_B$Temperature <- factor(data_GC_B$Temperature, 
+                                levels = c("28", "22","15"))
+#S18 (Fig. 1D)
+S18_B <- ggplot(data_GC_B, aes(Time, log(C_S18), color = Temperature))+ 
+  geom_point()+
+  geom_smooth(data = data_GC_B[data_GC_B$Time > 0 & data_GC_B$Time < 58,],
+              method = lm, alpha=0.1) +
+  labs(y="log CFUs/mL of S18", x="Time (hours)")+
+  theme_bw()+
+  theme(panel.grid = element_blank(), axis.text.x = element_text(colour = "black"), 
+        axis.text.y = element_text(colour = "black"))+
+  scale_color_futurama()
+S18_B
+# add slope and R2
+
+#W02 (Fig. 1E)
+W02_B <- ggplot(data_GC_B, aes(Time, log(C_W02), color = Temperature))+ 
+  geom_point()+
+  geom_smooth(data = data_GC_B[data_GC_B$Time > 0 & data_GC_B$Time < 58,],
+              method = lm, alpha=0.1) +
+  labs(y="log CFUs/mL of W02", x="Time (hours)")+
+  theme_bw()+
+  theme(panel.grid = element_blank(), axis.text.x = element_text(colour = "black"), 
+        axis.text.y = element_text(colour = "black"))+
+  scale_color_futurama()
+W02_B
+#W03 (Fig. 1F)
+W03_B <- ggplot(data_GC_B, aes(Time, log(C_W03), color = Temperature))+ 
+  geom_point()+
+  geom_smooth(data = data_GC_B[data_GC_B$Time > 0 & data_GC_B$Time < 58,],
+              method = lm, alpha=0.1) +
+  labs(y="log CFUs/mL of W03", x="Time (hours)")+
+  theme_bw()+
+  theme(panel.grid = element_blank(), axis.text.x = element_text(colour = "black"), 
+        axis.text.y = element_text(colour = "black"))+
+  scale_color_futurama()
+W03_B
+
+
+# Afterwards, I can calculate the growth rate.
+
+# sheet1-SW2
+data <- read.xlsx("TPC.xlsx", 13)
+data <- data[complete.cases(data), ] # Delete NA
+
+ggplot(data, aes(Time, Q)) +
+  geom_point() +
+  scale_colour_viridis_d(option = "D") +
+  theme_bw() +
+  theme(
+    legend.position = c(0.2, 0.8), panel.grid = element_blank(), axis.text.x = element_text(colour = "black"),
+    axis.text.y = element_text(colour = "black")
+  ) +
+  labs(y = "OD")
+
+
+### Basic linear approaches ###
+
+# calculate the growth rate from these data
+data$LogN<-log(data$Q)
+data$Log10N<-log10(data$Q)
+
+# visualise
+ggplot(data, aes(x = Time, y = LogN)) + 
+  geom_point(size = 3) +
+  labs(x = "Time (Hours)", y = "log(OD)") +
+  theme_bw(base_size = 16)
+
+# Slope BY EYE
+(data[data$Time ==46.5,]$LogN - data[data$Time == 11,]$LogN)/(46.5-11)
+
+# fit a linear model - get the slope - still not great
+lm_growth <- lm(LogN ~ Time, data = data[data$Time > 0 & data$Time < 58,])
+summary(lm_growth)
+
+# Thermal performance Curve of three strains (monoculture)
+# Fig 2. TPC
+setwd("/Users/WANG/Desktop")
+tpc <- read.csv("data.csv")
+tpc <- tpc[,c(13:16)]
+
+col_tpc <- c('white','#46732EFF', '#197EC0FF', '#FD7446FF')
+ggplot(tpc, aes(x = Temp, y = log(rate), color = monoculture)) +
+  geom_point(size=3.5, shape=18) +
+  geom_smooth(size=0.5, se = FALSE)+
+  theme_bw()+
+  scale_color_manual(values = col_tpc)+
+  labs(x="Temperature (℃)",y="log growth rate")
+
+
+# Linear Mixed Effects Model
+library(lme4)
+library(Matrix)
+library(lmerTest)
+
+setwd("/Users/WANG/Desktop")
+lme <- read.csv("data.csv", encoding='UTF-8')
+head(lme)
+
+# First, we select pairwise interactions
+lme_2 <-lme[,c(5:11)]
+lme_2$Alpha1 <- as.numeric(lme_2$Alpha1)
+lme_2$Alpha1 <- complete.cases(lme_2$Alpha1)
+lme_2$Alpha2 <- as.numeric(lme_2$Alpha2)
+lme_2$Alpha3 <- as.numeric(lme_2$Alpha3)
+
+#bi-culture of S18+W02 (Strain 1)
+#Fig. 3a
+col_1 <- c('white','#46732EFF', '#197EC0FF')
+ggplot(lme_2, aes(x = Temperature1, y = Alpha1, color = Strain1)) +
+  geom_point(size=1) +
+  geom_smooth(size=0.8, method = lm, se = FALSE)+
+  theme_bw()+
+  scale_color_manual(values = col_1)+
+  labs(x="Temperature (℃)",y="α values")
+
+#bi-culture of S18+W03 (Strain 2)
+#Fig. 3b
+col_2 <- c('white','#46732EFF', '#ED7446FF')
+ggplot(lme_2, aes(x = Temperature1, y = Alpha2, color = Strain2)) +
+  geom_point(size=1) +
+  geom_smooth(method = lm, se = FALSE)+
+  theme_bw()+
+  scale_color_manual(values = col_2)+
+  labs(x="Temperature (℃)",y="α values")
+
+#bi-culture of W02+W03 (Strain 3)
+#Fig. 3c
+col_3 <- c('white','#197EC0FF', '#ED7446FF')
+ggplot(lme_2, aes(x = Temperature1, y = Alpha3, color = Strain3)) +
+  geom_point(size=1) +
+  geom_smooth(method = lm, se = FALSE)+
+  theme_bw()+
+  scale_color_manual(values = col_3)+
+  labs(x="Temperature (℃)",y="α values")
+
+# I use linear models to analyze the relationship of alpha values and T
+summary(lm(Alpha1~Temperature1, lme_2[lme_2$Strain1 == "S18",]))
+# From summary results, adjusted r-squared values are quite low.
+# This is may because batch effect bringing more experimental errors.
+# So, I add the batch effect to the model.
+
+lme_2$Batch1 <- rep(c(rep("A", 3), rep("B", 3)),6)
+
+summary(lmer(Alpha1~Temperature1 + (1|Batch1), lme_2[lme_2$Strain1 == "S18",]))
+summary(lmer(Alpha1~Temperature1 + (1|Batch1), lme_2[lme_2$Strain1 == "W02",]))
+
+
+summary(lmer(Alpha2~Temperature1 + (1|Batch1), lme_2[lme_2$Strain2 == "S18",]))
+summary(lmer(Alpha2~Temperature1 + (1|Batch1), lme_2[lme_2$Strain2 == "W03",]))
+
+
+summary(lmer(Alpha3~Temperature1 + (1|Batch1), lme_2[lme_2$Strain3 == "W02",]))
+summary(lmer(Alpha3~Temperature1 + (1|Batch1), lme_2[lme_2$Strain3 == "W03",]))
+# Results are shown in Table 1.
+
+# Then, we select three-way interactions
+lme_3 <- lme[,c(1:3)]
+names(lme_3)[1] <- "Temperature"
+lme_3$Alpha <- as.numeric(lme_3$Alpha)
+
+# Set a specific color for each species
+#Fig. 3d
+col_4 <- c('#46732EFF', '#197EC0FF', '#FD7446FF')
+ggplot(lme_3, aes(x = Temperature, y = Alpha, color = Strain4)) +
+  geom_point(size=1) +
+  geom_smooth(method = lm, se = FALSE)+
+  theme_bw()+
+  scale_color_manual(values = col_4)+
+  labs(x="Temperature (℃)",y="α values")
+
+# I use linear models to analyze the relationship of alpha values and T
+summary(lm(Alpha~Temperature, lme_3[lme_3$Strain == "SWW-S18",]))
+summary(lm(Alpha~Temperature, lme_3[lme_3$Strain == "SWW-W02",]))
+summary(lm(Alpha~Temperature, lme_3[lme_3$Strain == "SWW-W03",]))
+# From summary results, adjusted r-squared values are quite low.
+# This is may because batch effect bringing more experimental errors.
+# So, I add the batch effect to the model.
+
+lme_3$Batch <- rep(c(rep("A", 6), rep("B", 6)), 9)
+
+summary(lmer(Alpha~Temperature + (1|Batch), lme_3[lme_3$Strain == "SWW-S18",]))
+summary(lmer(Alpha~Temperature + (1|Batch), lme_3[lme_3$Strain == "SWW-W02",]))
+summary(lmer(Alpha~Temperature + (1|Batch), lme_3[lme_3$Strain == "SWW-W03",]))
+# # Results are shown in Table 1.
+
